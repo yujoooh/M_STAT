@@ -1,9 +1,6 @@
 #[Geosystem Research : Department of Marine Forecast ]
 #[Created by C.K. Park on 2018.10.23]
 #[Edit 2019.03.05 by C.K. Park]
-
-#2021년 10월 21일 전까지는 일 1회 스킨스쿠버 서비스 지수 제공 그에따른 코드는 아래와 같음
-
 import xlrd
 import xlwt
 import win32com.client
@@ -12,8 +9,8 @@ import calendar
 from datetime import date, timedelta
 from datetime import datetime
 
-ORG_FILE = '../INPUT/ssorg - 복사본.xlsx'
-MOD_FILE = '../INPUT/ssmod - 복사본.xlsx'
+ORG_FILE = '../INPUT/ssorg2.xlsx'
+MOD_FILE = '../INPUT/ssmod2.xlsx'
 #산출된 예보지수자료 읽기-------------------------------------------------------------------------
 ORG = xlrd.open_workbook(ORG_FILE)
 org_sheet = ORG.sheet_by_index(0)
@@ -60,12 +57,14 @@ while ii < nxm:
 org_Route = org_list[2] #권역
 org_Point = org_list[3] #지점
 org_FDATE = org_list[4] #예측일자
-org_INDEX = org_list[22] #지수
+org_FAMPM = org_list[5] #예측구분(오전/오후)
+org_INDEX = org_list[23] #지수
 
 mod_Route = mod_list[2] #권역
 mod_Point = mod_list[3] #지점
 mod_FDATE = mod_list[4] #예측일자
-mod_INDEX = mod_list[22] #지수
+mod_FAMPM = mod_list[5] #예측구분(오전/오후)
+mod_INDEX = mod_list[23] #지수
 #print(org_Route, org_Point, org_FDATE, org_FISH, org_INDEX)
 
 #지수 지점정보 파일 - 추가시 갱신필요
@@ -99,6 +98,7 @@ while ii < NUM_STN:
 		O_DATE = int(float(org_FDATE[jj]))
 		O_DATE = datetime.strptime(str(O_DATE), "%Y%m%d").date()
 		O_DATE = datetime.strftime(O_DATE, "%Y-%m-%d")
+		O_AMPM = str(org_FAMPM[jj])
 		O_INDEX = str(org_INDEX[jj])
 
 		M_Route = mod_Route[jj].replace(" ","") # 띄어쓰기 삭제
@@ -106,6 +106,7 @@ while ii < NUM_STN:
 		M_DATE = int(float(mod_FDATE[jj]))
 		M_DATE = datetime.strptime(str(M_DATE), "%Y%m%d").date()
 		M_DATE = datetime.strftime(M_DATE, "%Y-%m-%d")
+		M_AMPM = str(mod_FAMPM[jj])
 		M_INDEX = str(mod_INDEX[jj])
 
 		tmp = int(float(org_FDATE[jj]))
@@ -125,45 +126,33 @@ while ii < NUM_STN:
 			
 			# 월별 자료 공백 채우기
 			if kk == 1 and O_DATE != start_day:
-				data.append([O_Route, O_Point, str(date(yr,mn,1)), " ", " "])
-				print(O_Route, O_Point, str(date(yr,mn,1)), " ", " ")
+				data.append([O_Route, O_Point, str(date(yr,mn,1)), "AM", " ", " "])
+				data.append([O_Route, O_Point, str(date(yr,mn,1)), "PM", " ", " "])
+				print(O_Route, O_Point, str(date(yr,mn,1)), "AM", " ", " ")
+				print(O_Route, O_Point, str(date(yr,mn,1)), "PM", " ", " ")
+				print(jj)
+				jj = jj-1
 				if kk+1 <= calendar.monthrange(yr,mn)[1] : kk += 1 ; after_day = str(date(yr,mn,kk))
 
 			elif kk != 1 and ody != ady:
-				data.append([O_Route, O_Point, str(date(yr,mn,kk)), " ", " "])
-				print(O_Route, O_Point, str(date(yr,mn,kk)), " ", " ")
-				if kk+1 <= calendar.monthrange(yr,mn)[1] : kk += 1 ; after_day = str(date(yr,mn,kk))
+				data.append([O_Route, O_Point, str(date(yr,mn,kk)), "AM", " ", " "])
+				data.append([O_Route, O_Point, str(date(yr,mn,kk)), "PM", " ", " "])
+				print(O_Route, O_Point, str(date(yr,mn,kk)), "AM", " ", " ")
+				print(O_Route, O_Point, str(date(yr,mn,kk)), "PM", " ", " ")
+    
+				if int(ody) > int(ady) : jj = jj - 1
+				if kk+1 <= calendar.monthrange(yr,mn)[1] : kk += 1; after_day = str(date(yr,mn,kk)); ady = after_day.split('-')[2]
 				
-				if POINT_NAME == O_Point and POINT_NAME == M_Point and O_DATE == M_DATE:
-					if O_INDEX == "매우좋음" : O_SCORE = 5 ; O_LV5 += 1 # 등급별 숫자 변환 및 카운팅
-					if O_INDEX == "좋음"    : O_SCORE = 4 ; O_LV4 += 1
-					if O_INDEX == "보통"    : O_SCORE = 3 ; O_LV3 += 1
-					if O_INDEX == "나쁨"    : O_SCORE = 2 ; O_LV2 += 1
-					if O_INDEX == "매우나쁨" : O_SCORE = 1 ; O_LV1 += 1
-					if O_INDEX == "체험불가" : O_SCORE = 0 ; O_LV0 += 1
-
-					if M_INDEX == "매우좋음" : M_SCORE = 5 ; M_LV5 += 1
-					if M_INDEX == "좋음"    : M_SCORE = 4 ; M_LV4 += 1
-					if M_INDEX == "보통"    : M_SCORE = 3 ; M_LV3 += 1
-					if M_INDEX == "나쁨"    : M_SCORE = 2 ; M_LV2 += 1
-					if M_INDEX == "매우나쁨" : M_SCORE = 1 ; M_LV1 += 1
-					if M_INDEX == "체험불가" : M_SCORE = 0 ; M_LV0 += 1
-
-					if O_INDEX == M_INDEX :
-						correct = correct + 1
-
-					data.append([O_Route, O_Point, O_DATE, O_SCORE, M_SCORE])
-					print(O_Route, O_Point, O_DATE, O_SCORE, M_SCORE)
-					if kk+1 <= calendar.monthrange(yr,mn)[1] : kk += 1 ; after_day = str(date(yr,mn,kk))
-
-			elif POINT_NAME == O_Point and POINT_NAME == M_Point and O_DATE == M_DATE :
+				
+			elif POINT_NAME == O_Point and POINT_NAME == M_Point and O_DATE == M_DATE and O_AMPM == M_AMPM:
+				cc += 0.5 #오전/오후용 = 0.5
 				if O_INDEX == "매우좋음" : O_SCORE = 5 ; O_LV5 += 1 # 등급별 숫자 변환 및 카운팅
 				if O_INDEX == "좋음"    : O_SCORE = 4 ; O_LV4 += 1 
 				if O_INDEX == "보통"    : O_SCORE = 3 ; O_LV3 += 1 
 				if O_INDEX == "나쁨"    : O_SCORE = 2 ; O_LV2 += 1 
 				if O_INDEX == "매우나쁨" : O_SCORE = 1 ; O_LV1 += 1
 				if O_INDEX == "체험불가" : O_SCORE = 0 ; O_LV0 += 1
-                                     
+
 				if M_INDEX == "매우좋음" : M_SCORE = 5 ; M_LV5 += 1
 				if M_INDEX == "좋음"    : M_SCORE = 4 ; M_LV4 += 1 
 				if M_INDEX == "보통"    : M_SCORE = 3 ; M_LV3 += 1 
@@ -174,9 +163,9 @@ while ii < NUM_STN:
 				if O_INDEX == M_INDEX :
 					correct = correct + 1
 
-				data.append([O_Route, O_Point, O_DATE, O_SCORE, M_SCORE])
-				print(O_Route, O_Point, O_DATE, O_SCORE, M_SCORE)
-				if kk+1 <= calendar.monthrange(yr,mn)[1] : 	kk += 1 ; after_day = str(date(yr,mn,kk))
+				data.append([O_Route, O_Point, O_DATE, O_AMPM, O_SCORE, M_SCORE])
+				print(O_Route, O_Point, O_DATE, O_AMPM, O_SCORE, M_SCORE)
+				if cc == 1 and kk+1 <= calendar.monthrange(yr,mn)[1] : kk += 1 ; cc = 0; after_day = str(date(yr,mn,kk))
 		
 		jj += 1
 	# TOTAL COUNT
@@ -210,7 +199,7 @@ while ii < NUM_STN:
 	table.append([ROUTE_NAME, POINT_NAME, OR_LV5, OR_LV4, OR_LV3, OR_LV2, OR_LV1, MR_LV5, MR_LV4, MR_LV3, MR_LV2, MR_LV1, O_TOTAL, correct, CORRECT_RATIO])
 	print(ROUTE_NAME, POINT_NAME, OR_LV5, OR_LV4, OR_LV3, OR_LV2, OR_LV1, MR_LV5, MR_LV4, MR_LV3, MR_LV2, MR_LV1,O_TOTAL, correct, CORRECT_RATIO)	
 	for i in data:
-		file.write('{0},{1},{2},{3},{4}\n'.format(i[0],i[1],i[2],i[3],i[4]))
+		file.write('{0},{1},{2},{3},{4},{5}\n'.format(i[0],i[1],i[2],i[3],i[4],i[5]))
 	file.close()
 
 	ii += 1
